@@ -67,6 +67,9 @@ presentations/*.pptx
 # Labs - Facilitator guides
 labs/module-*/facilitator-guide.md
 
+# Coverage reports
+**/coverage/**
+
 # ========================
 # Office Documents (Large Binary Files)
 # ========================
