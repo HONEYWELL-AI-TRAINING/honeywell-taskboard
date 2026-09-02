@@ -1,6 +1,8 @@
 package com.honeywell.taskboard.web;
 
 import com.honeywell.taskboard.service.InvalidStatusException;
+import com.honeywell.taskboard.service.InvalidCommentException;
+import com.honeywell.taskboard.service.CommentNotFoundException;
 import com.honeywell.taskboard.service.TaskNotFoundException;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -23,8 +25,18 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
     }
 
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<Map<String, String>> commentNotFound(CommentNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(InvalidStatusException.class)
     public ResponseEntity<Map<String, String>> invalidStatus(InvalidStatusException ex) {
+        return ResponseEntity.unprocessableEntity().body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCommentException.class)
+    public ResponseEntity<Map<String, String>> invalidComment(InvalidCommentException ex) {
         return ResponseEntity.unprocessableEntity().body(Map.of("error", ex.getMessage()));
     }
 

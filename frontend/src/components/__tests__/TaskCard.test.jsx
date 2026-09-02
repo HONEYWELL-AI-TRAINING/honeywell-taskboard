@@ -39,4 +39,30 @@ describe('TaskCard', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
     expect(onDelete).toHaveBeenCalledWith(baseTask)
   })
+
+  it('shows a comment count when the task has comments', () => {
+    render(
+      <TaskCard
+        task={baseTask}
+        commentCount={3}
+        onAdvance={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('3 comments')).toBeInTheDocument()
+  })
+
+  it('does not show a comment count when the task has no comments', () => {
+    render(
+      <TaskCard
+        task={baseTask}
+        commentCount={0}
+        onAdvance={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByText(/comments/)).not.toBeInTheDocument()
+  })
 })

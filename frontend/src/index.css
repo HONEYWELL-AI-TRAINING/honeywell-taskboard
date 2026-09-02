@@ -95,6 +95,37 @@ body {
   margin-top: 0.5rem;
 }
 
+.comment-count {
+  margin-top: 0.5rem;
+}
+
+.task-comments {
+  margin-top: 0.75rem;
+  border-top: 1px solid #dfe1e6;
+  padding-top: 0.75rem;
+}
+
+.comment {
+  border-bottom: 1px solid #dfe1e6;
+  font-size: 0.8rem;
+  padding: 0.5rem 0;
+}
+
+.comment p {
+  margin: 0.35rem 0;
+}
+
+.comment time {
+  color: #5e6c84;
+  font-size: 0.75rem;
+}
+
+.comment-form {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
 button {
   font: inherit;
   padding: 0.4rem 0.75rem;

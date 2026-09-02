@@ -21,6 +21,16 @@ CREATE TABLE IF NOT EXISTS tasks (
 
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks (status);
 
+CREATE TABLE IF NOT EXISTS task_comments (
+    id          SERIAL PRIMARY KEY,
+    task_id     INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    author      VARCHAR(100) NOT NULL,
+    text        VARCHAR(500) NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_comments_task_id ON task_comments (task_id);
+
 -- Keep updated_at honest without either ORM having to remember to set it.
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$

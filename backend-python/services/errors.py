@@ -7,6 +7,12 @@ class TaskNotFound(Exception):
         self.task_id = task_id
 
 
+class CommentNotFound(Exception):
+    def __init__(self, comment_id: int) -> None:
+        super().__init__(f"Comment {comment_id} not found")
+        self.comment_id = comment_id
+
+
 class InvalidStatus(Exception):
     def __init__(self, status: str) -> None:
         super().__init__(f"Invalid status: {status!r}")

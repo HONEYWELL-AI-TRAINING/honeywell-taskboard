@@ -1,12 +1,5 @@
 # Feature Brief — Task Comments
 
-This is the **plain-English request** you feed to `/speckit.specify` in Lab 01.
-It is intentionally informal and slightly under-specified — turning it into an
-unambiguous, testable specification is the work of Module 04. Do **not** add
-implementation detail here; that is what `/speckit.plan` is for.
-
----
-
 ## The ask (as a product owner would phrase it)
 
 Engineers want to discuss a task without leaving the board. Add a lightweight
