@@ -258,8 +258,53 @@ sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
 ```
 ```powershell
 # Windows — nothing to do if you used "postgres" in the installer wizard.
-# Otherwise use your password in every URL/connection string below.
+# Otherwise either use your password in every URL/connection string below,
+# or change it to "postgres" (next section).
 ```
+
+**Windows only — change the `postgres` password to `postgres`.** Do this if the
+installer wizard used a different password, or the backend fails with
+`password authentication failed for user "postgres"`.
+
+*If you know the current password* (it prompts for it):
+
+```powershell
+psql -U postgres -h localhost -c "ALTER USER postgres PASSWORD 'postgres';"
+```
+
+*If you have forgotten it* — temporarily switch local logins to `trust`, reset,
+then switch back. Run PowerShell **as Administrator**; adjust `17` if you
+installed another version:
+
+```powershell
+$pgdata  = "C:\Program Files\PostgreSQL\17\data"
+$service = "postgresql-x64-17"
+
+# 1. Back up pg_hba.conf and allow passwordless local logins
+Copy-Item "$pgdata\pg_hba.conf" "$pgdata\pg_hba.conf.bak"
+(Get-Content "$pgdata\pg_hba.conf") `
+  -replace '(127\.0\.0\.1/32\s+|::1/128\s+)(scram-sha-256|md5)', '$1trust' |
+  Set-Content -Encoding ascii "$pgdata\pg_hba.conf"
+Restart-Service $service
+
+# 2. Set the new password (no prompt while trust is on)
+psql -U postgres -h localhost -c "ALTER USER postgres PASSWORD 'postgres';"
+
+# 3. Restore the original authentication settings
+Copy-Item "$pgdata\pg_hba.conf.bak" "$pgdata\pg_hba.conf" -Force
+Restart-Service $service
+```
+
+Verify the new password works (it should print `1`, with no password prompt
+because it is in the URL):
+
+```powershell
+psql "postgresql://postgres:postgres@localhost:5432/postgres" -tAc "SELECT 1;"
+```
+
+> Don't skip step 3 — while `trust` is on, anyone who can reach port 5432 can
+> log in without a password. `postgres` / `postgres` is for local development
+> only.
 
 **c. Create the database, then load the schema and seed data.** Identical on
 every OS:
@@ -285,8 +330,23 @@ You should see six rows (two `done`, two `in-progress`, two `todo`).
 
 ### 2. Pick ONE backend
 
-Each exposes the same API. Interactive docs: **Python** → `/docs`,
-**.NET** → `/swagger`, **Java** → `/swagger-ui.html`.
+Each exposes the same API and serves its own interactive docs. Once a backend
+is running, open its docs URL to confirm it is up and exposing the contract:
+
+| Backend | Port | Interactive docs (open in browser) | Raw OpenAPI spec | Health |
+|---|---|---|---|---|
+| Python (FastAPI) | 8000 | http://localhost:8000/docs (Swagger UI) · http://localhost:8000/redoc | http://localhost:8000/openapi.json | http://localhost:8000/health |
+| .NET (ASP.NET Core) | 5088 | http://localhost:5088/swagger | http://localhost:5088/swagger/v1/swagger.json | http://localhost:5088/health |
+| Java (Spring Boot) | 8080 | http://localhost:8080/swagger-ui.html | http://localhost:8080/v3/api-docs | http://localhost:8080/health |
+
+- The page should list the task endpoints under `/api/tasks`. If the docs load
+  but `GET /api/tasks` fails with a 500, the process is up but can't reach
+  PostgreSQL — see the database check below.
+- .NET only serves Swagger when `ASPNETCORE_ENVIRONMENT=Development`. That is
+  already the case with `dotnet run` (set in `launchSettings.json`), but not if
+  you run a published build or set the variable to something else.
+- Running a backend on a Windows VM from another machine? Replace `localhost`
+  with the VM's IP and make sure the port is open in the Windows firewall.
 
 After starting one, **check the database connection** by listing the tasks —
 `/health` only proves the process is up, not that it can reach PostgreSQL:
@@ -434,7 +494,7 @@ Stop-Service postgresql-x64-17        # Windows (run PowerShell as Administrator
 | Command not found right after a `winget install` | Close and reopen PowerShell so it picks up the new `PATH` |
 | `connection refused` on port 5432 | PostgreSQL isn't running — step 1a. Java exits at startup with `Connection to localhost:5432 refused` |
 | `role "postgres" does not exist` | macOS/Homebrew only — run the `CREATE ROLE` command in step 1b |
-| `password authentication failed for user "postgres"` | The password differs from the one in your URL or connection string. Reset it: `ALTER USER postgres PASSWORD 'postgres';` (see step 1b) |
+| `password authentication failed for user "postgres"` | The password differs from the one in your URL or connection string. Reset it: `ALTER USER postgres PASSWORD 'postgres';` (see step 1b — Windows has a full reset procedure there, including for a forgotten password) |
 | `database "taskboard" does not exist` | Run the `CREATE DATABASE` command in step 1c |
 | `relation "tasks" does not exist` | Schema not applied — run `schema.sql` (step 1c). No backend creates tables |
 | .NET: `/health` is OK but `/api/tasks` returns 500 — *"The ConnectionString property has not been initialized"* | `ConnectionStrings__DefaultConnection` isn't set **in this terminal** — set it, then restart `dotnet run` |
