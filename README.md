@@ -1,84 +1,194 @@
-# Module 01: AI Champions Kick-off & Enterprise Context — Hands-On Lab
+AI Champions - Hands-On Lab with Taskboard
 
 ## Overview
 
-Module 01 sets the frame for the whole programme: the shift **from isolated AI
-experimentation to disciplined enterprise adoption**, the AI Champion role by
-function, the risks of unmanaged AI usage, the end-to-end AI-assisted
-engineering lifecycle, and Agent Prism as the monitoring lens.
+This lab is about the shift **from isolated AI experimentation to disciplined,
+measurable AI-assisted engineering**: knowing where AI helps, where it adds
+risk, and how to tell the difference with evidence.
 
-This lab makes that concrete. You stand up the **Engineering Task Board** — a
-small full-stack app (PostgreSQL + a React board + your choice of a .NET,
-Python, or Java/Spring Boot backend, all behind the same API contract) — and
-use it to run the Module 01 workshop against real code: map the
-current-state workflow, identify greenfield vs brownfield work, and record the
-**baseline success metrics** every later module is measured against.
+You stand up the **Engineering Task Board** — a small full-stack app
+(PostgreSQL + a React board + your choice of a .NET, Python, or Java/Spring
+Boot backend, all behind the same API contract) — and use it to practise on
+real code: map the current-state workflow, identify greenfield vs brownfield
+work, and record **baseline success metrics** you can measure later changes
+against.
 
-It is also the application you keep building. Module 02 layers GitHub Copilot's
-enterprise customization (instructions, prompts, agents, skills, MCP, coding
-agent, code review) onto it, Module 03 adds search and analytics, Module 04
-rebuilds the next feature spec-first — all on this codebase.
+The app is small enough to read end to end, layered the same way in all three
+backends, and covered by tests, so it is a good base to keep extending. The
+feature briefs in [`docs/`](docs/) are ready-made follow-on changes.
 
 ## Concepts Covered
 
-Traced from `presentations/Module01_AI_Champions_Kickoff_Enterprise_Context.pdf`:
-
-| Concept (from the deck) | Where it shows up in this lab |
-|-------------------------|-------------------------------|
+| Concept | Where it shows up in this lab |
+|---------|-------------------------------|
 | Isolated experimentation → disciplined adoption | Exercise 2 contrasts an ad-hoc "prompt-only" change with a context-first, tested one |
 | The AI Champion role, by function | [Role lenses](#role-lenses) — each role inspects a different part of the codebase |
 | Business & engineering risks of unmanaged AI usage | Exercise 3 risk note: which risks a change to this code could trigger, and how tests guard them |
-| The AI-assisted software engineering lifecycle (end to end) | The [layered architecture](usecase.md#architecture) is the "Copilot Foundations → … → Observe" pipeline in miniature |
-| Agent Prism: the monitoring lens | [Metrics worksheet](#baseline-metrics-worksheet) records traces of your own workflow: cycle time, quality, review effort, token/AI cost |
-| Workshop: current-state vs target-state workflow | Exercise 1 produces both, grounded in a real change to this app |
+| The AI-assisted engineering workflow, end to end | The exercises take one small change from framing through context, implementation, testing and review; the [layered architecture](docs/base-taskboard.md#architecture) shows where each concern lives |
+| Measuring AI-assisted work | The [metrics worksheet](#baseline-metrics-worksheet) records cycle time, quality, review effort and token/AI cost for your own workflow |
+| Current-state vs target-state workflow | Exercise 1 produces both, grounded in a real change to this app |
 
 ## Prerequisites
 
-- [Prerequisites — tools & versions](../setup/prerequisites.md) (macOS, Linux, and Windows)
-- [PostgreSQL setup](../setup/database-setup.md)
-- Backend setup — you only need one:
-  [.NET](../setup/dotnet-setup.md) · [Python](../setup/python-setup.md) · [Java](../setup/java-setup.md)
+This README is self-contained: it installs, configures and runs everything
+(database, backend, frontend) on **macOS, Ubuntu and Windows** — every piece
+runs directly on your machine.
 
-This is the first module — there is no earlier lab to complete.
+> **Shells.** Command blocks are given for **macOS / Ubuntu (bash/zsh)** and
+> **Windows (PowerShell)**. Run the one that matches your machine. Other Linux
+> distributions: use the Ubuntu commands with your package manager. WSL2 users
+> follow the Ubuntu side.
 
-> **Shells.** Command blocks below are given for **macOS / Linux (bash/zsh)**
-> and **Windows (PowerShell)**. Run the pair that matches your machine; WSL2
-> users follow the macOS / Linux side.
+### What you need
 
-## Use Case
+| Tool | Version | Needed for |
+|------|---------|------------|
+| Git | any recent | getting the code |
+| PostgreSQL | 14+ (16+ recommended) | the database; includes the `psql` client |
+| Node.js + npm | 20.19+, 22.13+ or 24+ | the frontend (Vite 8 refuses older Node) |
+| **One** backend toolchain: | | |
+| — Python | 3.11+ | Option A (FastAPI) |
+| — .NET SDK | 8.x | Option B (ASP.NET Core) |
+| — JDK | 21 | Option C (Spring Boot). Maven is bundled via `mvnw` — don't install it |
 
-The **Engineering Task Board**: a Kanban-style task list with three columns
-(To Do / In Progress / Done), full CRUD, and status filtering. Full detail,
-data model, and API contract are in **[usecase.md](usecase.md)**.
+### Install the tools
 
-## Configuration
-
-**macOS / Linux**
+**macOS** — needs [Homebrew](https://brew.sh)
 
 ```bash
-cd labs/module-01
-cp .env.example .env        # then fill in the placeholder passwords
+brew install git node postgresql@17
+
+# postgresql@17 is "keg-only": put psql on your PATH
+echo 'export PATH="$(brew --prefix postgresql@17)/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Backend toolchain — install only the one you will use
+brew install python                  # Option A — Python
+brew install --cask dotnet-sdk@8     # Option B — .NET
+brew install --cask temurin@21       # Option C — Java
+```
+
+**Ubuntu (22.04 / 24.04)**
+
+```bash
+sudo apt update
+sudo apt install -y git curl postgresql
+
+# Node.js: Ubuntu's own nodejs package is too old for Vite 8, so use nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
+# ...open a NEW terminal, then:
+nvm install --lts
+
+# Backend toolchain — install only the one you will use
+sudo apt install -y python3 python3-venv python3-pip   # Option A — Python
+sudo apt install -y dotnet-sdk-8.0                     # Option B — .NET
+sudo apt install -y openjdk-21-jdk                     # Option C — Java
+```
+
+> Ubuntu 22.04 ships Python 3.10, which is too old for Option A. Use Ubuntu
+> 24.04 (Python 3.12), pick Option B or C, or install Python 3.11+ from the
+> [deadsnakes PPA](https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa).
+
+**Windows 10 / 11** — PowerShell (`winget` ships with Windows)
+
+```powershell
+winget install -e --id Git.Git
+winget install -e --id OpenJS.NodeJS.LTS
+winget install -e --id PostgreSQL.PostgreSQL.17 --interactive   # the wizard asks for a "postgres" password: use postgres
+
+# Backend toolchain — install only the one you will use
+winget install -e --id Python.Python.3.13            # Option A — Python
+winget install -e --id Microsoft.DotNet.SDK.8        # Option B — .NET
+winget install -e --id EclipseAdoptium.Temurin.21.JDK  # Option C — Java
+```
+
+**Close and reopen PowerShell** afterwards so the new tools are on your `PATH`.
+The PostgreSQL installer does not add `psql` to the `PATH`, so add it:
+
+```powershell
+$env:Path += ";C:\Program Files\PostgreSQL\17\bin"   # this terminal only
+```
+
+To make that permanent: Start menu → *Edit environment variables for your
+account* → `Path` → *New* → `C:\Program Files\PostgreSQL\17\bin`.
+
+### Check the tools
+
+**macOS / Ubuntu**
+
+```bash
+git --version && node --version && npm --version && psql --version
+python3 --version      # Option A (3.11+)
+dotnet --version       # Option B (8.x)
+java -version          # Option C (21)
 ```
 
 **Windows (PowerShell)**
 
 ```powershell
-cd labs/module-01
-Copy-Item .env.example .env  # then fill in the placeholder passwords
+git --version; node --version; npm --version; psql --version
+py -3 --version        # Option A (3.11+)
+dotnet --version       # Option B (8.x)
+java -version          # Option C (21)
 ```
 
-`.env` is git-ignored. Making the copy and filling it in yourself is part of
-the lesson — no credentials live in source. The backends read their config
-from environment variables (set them in your shell, or use a tool like
-`direnv` / `dotenv`); `.env` is your reference copy of what to set.
+## Use Case
 
-| Variable | Used by | Notes |
-|----------|---------|-------|
-| `ConnectionStrings__DefaultConnection` | .NET backend | ADO-style connection string |
-| `DATABASE_URL` | Python backend | SQLAlchemy async URL (`postgresql+asyncpg://…`) |
-| `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | Java backend | JDBC URL + credentials (Spring binds these automatically) |
-| `FRONTEND_ORIGIN` | Python & Java backends | CORS allow-list (defaults to the Vite dev server) |
-| `VITE_API_BASE_URL` | frontend | `http://localhost:8000` (Python), `http://localhost:5088` (.NET), or `http://localhost:8080` (Java) |
+The **Engineering Task Board**: a Kanban-style task list with three columns
+(To Do / In Progress / Done), full CRUD, and status filtering. Full detail,
+data model, and API contract are in **[docs/base-taskboard.md](docs/base-taskboard.md)**.
+
+### Repository layout
+
+```
+.
+├── database/         schema.sql (authoritative), seed.sql, migrations/
+├── backend-python/   FastAPI          — port 8000
+├── backend-dotnet/   ASP.NET Core     — port 5088
+├── backend-java/     Spring Boot      — port 8080
+├── frontend/         React + Vite     — port 5173
+└── docs/             use case, API contract, feature specs
+```
+
+Every command below is run from the **repository root** (the folder containing
+`database/` and `frontend/`) unless a `cd` says otherwise.
+
+## Configuration
+
+There is no `.env` file to copy. Nothing secret is committed (`.gitignore`
+excludes `.env*`), and each stack reads its settings from **environment
+variables**, falling back to built-in defaults. With the local setup used in
+this README (user `postgres`, password `postgres`, `localhost:5432`, database
+`taskboard`):
+
+- **Python and Java need no configuration** — their defaults already match.
+- **.NET needs one variable** — its connection string has no default.
+- **The frontend needs one setting only if you don't use the Python backend.**
+
+| Setting | Used by | Default | Notes |
+|---------|---------|---------|-------|
+| `DATABASE_URL` | Python backend | `postgresql+asyncpg://postgres:postgres@localhost:5432/taskboard` | SQLAlchemy async URL. Can also live in `backend-python/.env` |
+| `ConnectionStrings__DefaultConnection` | .NET backend | **none — required** | Npgsql connection string |
+| `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | Java backend | `jdbc:postgresql://localhost:5432/taskboard` / `postgres` / `postgres` | Spring binds these automatically |
+| `FRONTEND_ORIGIN` | Python & Java backends | `http://localhost:5173` | CORS allow-list — must equal the URL the browser uses |
+| `Frontend__Origin` | .NET backend | `http://localhost:5173` | Same CORS setting, .NET's name for it |
+| `VITE_API_BASE_URL` | frontend (`frontend/.env.local`) | `http://localhost:8000` | Python `:8000`, .NET `:5088`, Java `:8080` |
+
+**Setting an environment variable** (applies to the current terminal only — set
+it again in every new terminal):
+
+```bash
+# macOS / Ubuntu
+export DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/taskboard"
+```
+```powershell
+# Windows (PowerShell)
+$env:DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/taskboard"
+```
+
+> **Passwords.** `postgres` / `postgres` is a throwaway local-development
+> credential. If you chose another password, use it everywhere below, and
+> percent-encode special characters in URLs (`@` → `%40`).
 
 ## Data Model
 
@@ -107,141 +217,248 @@ CREATE TABLE tasks (
 | POST | `/api/tasks` | Create a task |
 | PUT | `/api/tasks/{id}` | Update a task |
 | DELETE | `/api/tasks/{id}` | Delete a task |
-| GET | `/health` | Liveness check |
+| GET | `/health` | Liveness check (does **not** touch the database) |
 
 Error contract: `404` for a missing id, `422` for a missing title or an
-unknown status. See [usecase.md](usecase.md#api-contract).
+unknown status. See [docs/base-taskboard.md](docs/base-taskboard.md#api-contract).
 
 ## Running the Lab
 
-All commands are run from `labs/module-01/` (or the noted sub-folder). Full
-platform detail for each piece is in the [setup guides](../setup/).
+You will have three things running: **PostgreSQL** (a background service),
+**one backend**, and the **frontend**. Use one terminal for the backend and a
+second for the frontend.
 
 ### 1. Database
 
-Start PostgreSQL (local install or Docker — see
-[database-setup.md](../setup/database-setup.md)), then apply the schema.
+**a. Start PostgreSQL** and confirm it is accepting connections.
 
-**With a local `psql` (any platform)**
+```bash
+# macOS
+brew services start postgresql@17
+pg_isready                          # expect: accepting connections
+
+# Ubuntu
+sudo systemctl enable --now postgresql
+pg_isready                          # expect: accepting connections
+```
+```powershell
+# Windows — the installer registered a service that starts automatically
+Get-Service postgresql*             # expect: Running
+```
+
+**b. Make sure a `postgres` user exists with the password `postgres`.**
+
+```bash
+# macOS — Homebrew creates a superuser named after your macOS account,
+# not "postgres", so create it:
+psql -d postgres -c "CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD 'postgres';"
+
+# Ubuntu — the user exists but has no password yet:
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+```
+```powershell
+# Windows — nothing to do if you used "postgres" in the installer wizard.
+# Otherwise use your password in every URL/connection string below.
+```
+
+**c. Create the database, then load the schema and seed data.** Identical on
+every OS:
 
 ```
+psql "postgresql://postgres:postgres@localhost:5432/postgres" -c "CREATE DATABASE taskboard;"
 psql "postgresql://postgres:postgres@localhost:5432/taskboard" -f database/schema.sql
 psql "postgresql://postgres:postgres@localhost:5432/taskboard" -f database/seed.sql
 ```
 
-**Docker container, macOS / Linux**
+**d. Check it.**
 
-```bash
-docker exec -i taskboard-db psql -U postgres -d taskboard < database/schema.sql
-docker exec -i taskboard-db psql -U postgres -d taskboard < database/seed.sql
+```
+psql "postgresql://postgres:postgres@localhost:5432/taskboard" -c "SELECT id, title, status FROM tasks ORDER BY id;"
 ```
 
-**Docker container, Windows (PowerShell)**
+You should see six rows (two `done`, two `in-progress`, two `todo`).
 
-```powershell
-Get-Content database/schema.sql | docker exec -i taskboard-db psql -U postgres -d taskboard
-Get-Content database/seed.sql   | docker exec -i taskboard-db psql -U postgres -d taskboard
-```
+> `schema.sql` is safe to re-run. `seed.sql` **wipes the `tasks` table** and
+> reloads the six sample rows, so don't re-run it on data you want to keep.
+> Use `schema.sql` alone for setup — the files in `database/migrations/` are
+> the history of how it was built, not an extra step.
 
 ### 2. Pick ONE backend
 
-Each exposes the same API. Interactive docs: **.NET** → `/swagger`,
-**Python** → `/docs`, **Java** → `/swagger-ui.html`.
+Each exposes the same API. Interactive docs: **Python** → `/docs`,
+**.NET** → `/swagger`, **Java** → `/swagger-ui.html`.
 
-Each `cd` is from `labs/module-01/`. Steps that are identical on every OS are
-shown once; only the environment-variable line changes between shells.
-
-#### Option A — Python (FastAPI), port 8000
+After starting one, **check the database connection** by listing the tasks —
+`/health` only proves the process is up, not that it can reach PostgreSQL:
 
 ```bash
-cd backend-python
-python3 -m venv .venv && source .venv/bin/activate   # Windows: python -m venv .venv ; .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-Set the database URL, then start:
-
-```bash
-# macOS / Linux
-export DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/taskboard"
+# macOS / Ubuntu
+curl -s http://localhost:8000/api/tasks
 ```
 ```powershell
 # Windows (PowerShell)
-$env:DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/taskboard"
+Invoke-RestMethod http://localhost:8000/api/tasks
 ```
-```
+
+(Replace `8000` with `5088` for .NET or `8080` for Java.) You should get the
+six seeded tasks back as JSON.
+
+#### Option A — Python (FastAPI), port 8000
+
+**macOS / Ubuntu**
+
+```bash
+cd backend-python
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 uvicorn main:app --reload
+```
+
+**Windows (PowerShell)**
+
+```powershell
+cd backend-python
+py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+The default database URL already matches this README. To use something else,
+set `DATABASE_URL` first (see [Configuration](#configuration)) or put it in
+`backend-python/.env`:
+
+```
+DATABASE_URL=postgresql+asyncpg://postgres:YOUR_PASSWORD@localhost:5432/taskboard
 ```
 
 #### Option B — .NET (ASP.NET Core), port 5088
 
+The connection string is **required** — .NET has no default for it.
+
+**macOS / Ubuntu**
+
 ```bash
 cd backend-dotnet
-```
-```bash
-# macOS / Linux
 export ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=taskboard;Username=postgres;Password=postgres"
+dotnet run --project src/TaskBoard.Api
 ```
+
+**Windows (PowerShell)**
+
 ```powershell
-# Windows (PowerShell)
+cd backend-dotnet
 $env:ConnectionStrings__DefaultConnection = "Host=localhost;Port=5432;Database=taskboard;Username=postgres;Password=postgres"
-```
-```
 dotnet run --project src/TaskBoard.Api
 ```
 
 #### Option C — Java (Spring Boot), port 8080
 
+PostgreSQL must already be running — unlike the other two, Spring connects at
+startup and exits if it can't. The defaults in `application.yml` match this
+README; set the `SPRING_DATASOURCE_*` variables only if yours differ.
+
+**macOS / Ubuntu**
+
 ```bash
 cd backend-java
-```
-```bash
-# macOS / Linux
-export SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/taskboard"
-export SPRING_DATASOURCE_USERNAME=postgres
-export SPRING_DATASOURCE_PASSWORD=postgres
 ./mvnw spring-boot:run
 ```
+
+**Windows (PowerShell)**
+
 ```powershell
-# Windows (PowerShell)
-$env:SPRING_DATASOURCE_URL = "jdbc:postgresql://localhost:5432/taskboard"
-$env:SPRING_DATASOURCE_USERNAME = "postgres"
-$env:SPRING_DATASOURCE_PASSWORD = "postgres"
+cd backend-java
 .\mvnw.cmd spring-boot:run
 ```
 
-(`./mvnw` / `mvnw.cmd` is the bundled Maven wrapper — use `mvn` directly if
-you have it installed.)
+`mvnw` / `mvnw.cmd` is the bundled Maven wrapper; the first run downloads Maven
+and the dependencies, so it needs internet access and takes a minute. (Use
+`mvn` directly if you already have it installed.)
 
 ### 3. Frontend
 
-```
-cd frontend
-npm install
-npm run dev            # http://localhost:5173
-```
+In a **second terminal**, from the repository root:
 
-Point it at the backend you started by creating `frontend/.env.local`:
-
-**macOS / Linux**
+**macOS / Ubuntu**
 
 ```bash
-echo "VITE_API_BASE_URL=http://localhost:8000" > .env.local
+cd frontend
+npm install
+echo "VITE_API_BASE_URL=http://localhost:5088" > .env.local   # skip for Python; use :8080 for Java
+npm run dev
 ```
 
-**Windows (PowerShell)** — force UTF-8 so Vite reads it correctly:
+**Windows (PowerShell)**
 
 ```powershell
-Set-Content -Encoding utf8 .env.local "VITE_API_BASE_URL=http://localhost:8000"
+cd frontend
+npm install
+Set-Content -Encoding ascii .env.local "VITE_API_BASE_URL=http://localhost:5088"   # skip for Python; use :8080 for Java
+npm run dev
 ```
 
-Use `:5088` for .NET or `:8080` for Java instead of `:8000`.
+Open **http://localhost:5173**.
+
+- `frontend/.env.local` is git-ignored. The frontend defaults to the Python
+  backend (`http://localhost:8000`), so the file is only needed for .NET or Java.
+- The `ascii` encoding matters on Windows: PowerShell's default encodings can
+  add a byte-order mark that stops Vite from reading the first variable.
+- Vite reads `.env.local` at startup — **restart `npm run dev`** after changing it.
+
+### 4. Smoke test
+
+With the database, one backend and the frontend running, the board at
+http://localhost:5173 should show the six seeded tasks in their columns. Create
+a task, move it between columns, and delete it.
+
+### Stopping
+
+Press `Ctrl+C` in the backend and frontend terminals. PostgreSQL can keep
+running; to stop it:
+
+```bash
+brew services stop postgresql@17      # macOS
+sudo systemctl stop postgresql        # Ubuntu
+```
+```powershell
+Stop-Service postgresql-x64-17        # Windows (run PowerShell as Administrator)
+```
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---------|---------------|
+| `psql: command not found` / `'psql' is not recognized` | `psql` isn't on your `PATH`. macOS and Windows: do the `PATH` step under [Install the tools](#install-the-tools). Ubuntu: `sudo apt install postgresql`. Then open a new terminal |
+| Command not found right after a `winget install` | Close and reopen PowerShell so it picks up the new `PATH` |
+| `connection refused` on port 5432 | PostgreSQL isn't running — step 1a. Java exits at startup with `Connection to localhost:5432 refused` |
+| `role "postgres" does not exist` | macOS/Homebrew only — run the `CREATE ROLE` command in step 1b |
+| `password authentication failed for user "postgres"` | The password differs from the one in your URL or connection string. Reset it: `ALTER USER postgres PASSWORD 'postgres';` (see step 1b) |
+| `database "taskboard" does not exist` | Run the `CREATE DATABASE` command in step 1c |
+| `relation "tasks" does not exist` | Schema not applied — run `schema.sql` (step 1c). No backend creates tables |
+| .NET: `/health` is OK but `/api/tasks` returns 500 — *"The ConnectionString property has not been initialized"* | `ConnectionStrings__DefaultConnection` isn't set **in this terminal** — set it, then restart `dotnet run` |
+| Ubuntu: `ensurepip is not available` when creating the venv | `sudo apt install python3-venv` |
+| Windows: `Activate.ps1 cannot be loaded because running scripts is disabled` | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, then activate again |
+| `npm run dev` fails or warns about the Node version | Node is too old (Vite 8 needs 20.19+, 22.13+ or 24+). Ubuntu: `nvm install --lts`. macOS/Windows: reinstall Node |
+| Port already in use (8000 / 5088 / 8080 / 5173) | Find the process — macOS/Ubuntu: `lsof -i :8000`; Windows: `Get-NetTCPConnection -LocalPort 8000` — and stop it |
+| Board is empty or shows a network/CORS error | Backend not running, or `VITE_API_BASE_URL` points at a different backend than the one you started (restart `npm run dev` after editing). If Vite printed a port other than 5173 (because 5173 was busy), the backend's CORS check fails: free port 5173, or set `FRONTEND_ORIGIN` (`Frontend__Origin` for .NET) to the URL Vite printed |
+| `./mvnw: Permission denied` | The execute bit was lost (e.g. a zip download): `chmod +x backend-java/mvnw` |
+
+**Start over with a clean database:**
+
+```
+psql "postgresql://postgres:postgres@localhost:5432/postgres" -c "DROP DATABASE taskboard;"
+```
+
+then repeat steps 1c–1d.
 
 ## Exercises
 
-The exercises run the Module 01 workshop on this codebase. Copilot is optional
-in Module 01 — if it is enabled, use it and record the extra metrics; if not,
-do the same steps by hand and note where AI *would* have helped.
+The exercises run a hands-on workshop on this codebase. An AI coding assistant
+such as GitHub Copilot is optional — if you have one, use it and record the
+extra metrics; if not, do the same steps by hand and note where AI *would* have
+helped.
 
 ### Exercise 1 — Guided: run it, read it, map the current state
 
@@ -250,7 +467,7 @@ do the same steps by hand and note where AI *would* have helped.
    delete a task.
 2. Run the tests for the backend you chose and for the frontend
    (see [Verification](#verification)). Note how long a full run takes.
-3. Walk the codebase against [the layered architecture](usecase.md#architecture).
+3. Walk the codebase against [the layered architecture](docs/base-taskboard.md#architecture).
    For **`POST /api/tasks`**, trace the call from the React `TaskForm` all the
    way to the `tasks` table and back. Write down every file it passes through.
 4. Fill in the **current-state** column of the
@@ -269,7 +486,7 @@ Do it **twice** and compare:
 - **Pass A — prompt-only / ad hoc.** Make the change with the smallest possible
   context: no reading of neighbouring code, one-line request, accept the first
   result. Run the tests.
-- **Pass B — context-first.** Start from `usecase.md`, the existing
+- **Pass B — context-first.** Start from `docs/base-taskboard.md`, the existing
   repository/service/router layering, and the existing tests. Decide where the
   sort belongs (repository query, not the controller), add or update a test
   first, then implement. Run the tests.
@@ -278,7 +495,7 @@ For each pass record: wall-clock time, number of test files touched, whether
 the tests passed on the first try, and — if using Copilot — rough prompt/token
 count. Put the numbers in the worksheet.
 
-> This is the deck's core contrast in miniature: *inconsistent results when
+> This is the core contrast in miniature: *inconsistent results when
 > teams rely on prompts alone* vs *specification-led, validated change*.
 
 ### Exercise 3 — Independent challenge
@@ -286,22 +503,26 @@ count. Put the numbers in the worksheet.
 1. **Port the change.** Implement the same `sort` feature in a second backend
    (a different language from your Pass B). Make both return byte-identical
    JSON for the same request.
-2. **Write a risk note (½ page).** From the deck's *Business & Engineering
-   Risks* slide, pick the two risks your change is closest to (e.g. *AI-
-   generated changes disrupting existing patterns*, *manual/inconsistent
-   review*). For each: how could this specific change have gone wrong, and
-   which test would have caught it?
+2. **Write a risk note (½ page).** Pick the two risks from the list below that
+   your change is closest to. For each: how could this specific change have
+   gone wrong, and which test would have caught it?
+   - AI-generated changes that disrupt existing patterns or layering
+   - Manual, inconsistent review of AI-generated code
+   - Inconsistent results when a team relies on ad-hoc prompts
+   - Sensitive data or secrets leaking into prompts or code
+   - Changes shipping with weak or missing tests
+   - AI cost and quality going unmeasured
 3. **Draft the target-state workflow.** Complete the target column of the
    [workflow map](#current-state-vs-target-state): what should the disciplined
-   version of "add a small API + UI change" look like by the end of the
-   programme (spec, context, tests-first, PR gate, observability)?
+   version of "add a small API + UI change" look like once your team has
+   adopted it (spec, context, tests-first, PR gate, observability)?
 
 ## Current-state vs target-state
 
 Fill this in during Exercises 1 and 3.
 
-| Workflow stage | Current state (today) | Target state (end of programme) |
-|----------------|-----------------------|---------------------------------|
+| Workflow stage | Current state (today) | Target state (disciplined workflow) |
+|----------------|-----------------------|-------------------------------------|
 | Framing the change | | |
 | Gathering context for the AI | | |
 | Implementation | | |
@@ -311,8 +532,8 @@ Fill this in during Exercises 1 and 3.
 
 ## Baseline metrics worksheet
 
-The six measures the deck names. Capture them for the Exercise 2 change so
-later modules have a baseline to improve on.
+Six measures to track. Capture them for the Exercise 2 change so you have a
+baseline to improve on in later work.
 
 | Metric | Pass A (prompt-only) | Pass B (context-first) |
 |--------|----------------------|------------------------|
@@ -325,8 +546,7 @@ later modules have a baseline to improve on.
 
 ## Role lenses
 
-Same lab, different focus depending on your function (from the deck's *AI
-Champion Role, By Function* slide):
+Same lab, different focus depending on your function:
 
 - **Architects / Eng leads** — audit the layering: does business logic ever
   leak into a controller or a repository? Is the `tasks` schema owned in
@@ -334,22 +554,23 @@ Champion Role, By Function* slide):
 - **Developers / Testers** — you own Exercise 2 and 3 in depth. Drive the
   tests-first loop; make the backends agree byte-for-byte on the same request.
 - **DevOps / SRE** — sketch what a CI job for this repo runs (build, test,
-  schema-load check) and where Agent Prism-style telemetry would attach.
+  schema-load check) and where telemetry (traces, cost, quality) would attach.
 - **Product / Program / Design** — write the one-paragraph spec for the
   Exercise 2 change *before* anyone codes it; check the UI change against it.
 
 ## Verification
 
-Run each block from its folder under `labs/module-01/`. The commands
-themselves are identical on every OS — only shell grouping differs, so they
-are shown one folder at a time.
+None of the test suites need a running database or backend — the backends use
+fakes or mocks and the frontend mocks HTTP. Run each block from its folder
+under the repository root. The commands are identical on every OS apart from
+the two marked lines.
 
 ```
 # .NET backend  — in backend-dotnet/
 dotnet build
 dotnet test
 
-# Python backend  — in backend-python/ (virtualenv activated)
+# Python backend  — in backend-python/ (virtualenv activated, see Option A)
 pip install -r requirements.txt
 pytest
 
@@ -362,40 +583,36 @@ npm run build
 npm test -- --run
 ```
 
-Schema loads into a clean database (Docker example):
+The schema and seed files load into a clean database (this one **does** need
+PostgreSQL running). Identical on every OS, from the repository root:
 
-**macOS / Linux**
-
-```bash
-docker exec -i taskboard-db psql -U postgres -d postgres -c "CREATE DATABASE taskboard_check;"
-docker exec -i taskboard-db psql -U postgres -d taskboard_check < database/schema.sql
-docker exec -i taskboard-db psql -U postgres -d taskboard_check < database/seed.sql
-docker exec -i taskboard-db psql -U postgres -d postgres -c "DROP DATABASE taskboard_check;"
 ```
-
-**Windows (PowerShell)**
-
-```powershell
-docker exec -i taskboard-db psql -U postgres -d postgres -c "CREATE DATABASE taskboard_check;"
-Get-Content database/schema.sql | docker exec -i taskboard-db psql -U postgres -d taskboard_check
-Get-Content database/seed.sql   | docker exec -i taskboard-db psql -U postgres -d taskboard_check
-docker exec -i taskboard-db psql -U postgres -d postgres -c "DROP DATABASE taskboard_check;"
+psql "postgresql://postgres:postgres@localhost:5432/postgres" -c "CREATE DATABASE taskboard_check;"
+psql "postgresql://postgres:postgres@localhost:5432/taskboard_check" -f database/schema.sql
+psql "postgresql://postgres:postgres@localhost:5432/taskboard_check" -f database/seed.sql
+psql "postgresql://postgres:postgres@localhost:5432/postgres" -c "DROP DATABASE taskboard_check;"
 ```
 
 - [ ] `dotnet build` and `dotnet test` pass (14 tests)
-- [ ] `pytest` passes (19 tests)
-- [ ] `mvn test` passes (16 tests)
+- [ ] `pytest` passes (25 tests)
+- [ ] `./mvnw test` passes (16 tests)
 - [ ] `npm run build` succeeds and `npm test -- --run` passes (12 tests)
 - [ ] `schema.sql` + `seed.sql` load into a clean database without error
 - [ ] The board renders the seeded tasks and CRUD works against a live backend
-- [ ] `.env` is created from `.env.example`; no secret is committed
+- [ ] No secrets are committed (`git status` shows no `.env*` files)
 
 ## Next Steps
 
-Proceed to [Module 02](../module-02/README.md). It keeps **this** codebase as
-the base — no new app — and layers GitHub Copilot's advanced enterprise
-capabilities on top of it through guided exercises: repository and path-specific
-custom instructions, reusable prompt files, custom chat modes / agents, agent
-skills, agent mode with MCP tools, the Copilot coding agent on GitHub.com,
-automated Copilot code review, and the Copilot CLI. Every command is given for
-both macOS / Linux and Windows.
+You now have a running, tested baseline you can measure against. Ways to keep
+going on this same codebase:
+
+- **Build a feature from a brief.** [`docs/`](docs/) has plain-English briefs for
+  [task comments](docs/feature-task-comments.md),
+  [task search](docs/feature-task-search.md) and a
+  [board UI refresh](docs/feature-ui-refresh.md). Take one from brief to merged
+  change, record the same six metrics, and compare them with your baseline.
+- **Customize your AI assistant for this repo.** `.github/` holds example GitHub
+  Copilot customization: path-specific instructions
+  (`.github/instructions/`), SDLC agents (`.github/agents/`) and an
+  architecture-review skill (`.github/skills/`). Try them on the same change
+  and compare the metrics.
