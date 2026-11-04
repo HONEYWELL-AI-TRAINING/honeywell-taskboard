@@ -9,12 +9,13 @@ from services.errors import InvalidStatus, TaskNotFound
 
 
 class TaskRepositoryProtocol(Protocol):
-    async def list(self, status: str | None = None) -> Sequence[Task]: ...
+    async def list(self, status: str | None = None, deleted: bool = False) -> Sequence[Task]: ...
     async def count(self, status: str | None = None) -> int: ...
-    async def get(self, task_id: int) -> Task | None: ...
+    async def get(self, task_id: int, include_deleted: bool = False) -> Task | None: ...
     async def add(self, task: Task) -> Task: ...
     async def update(self, task: Task) -> Task: ...
-    async def delete(self, task: Task) -> None: ...
+    async def delete(self, task: Task, permanent: bool = False) -> None: ...
+    async def restore(self, task: Task) -> None: ...
 
 
 class TaskService:
@@ -26,18 +27,20 @@ class TaskService:
         if status not in VALID_STATUSES:
             raise InvalidStatus(status)
 
-    async def list_tasks(self, status: str | None = None) -> Sequence[Task]:
+    async def list_tasks(
+        self, status: str | None = None, deleted: bool = False
+    ) -> Sequence[Task]:
         if status is not None:
             self._validate_status(status)
-        return await self._repo.list(status)
+        return await self._repo.list(status, deleted=deleted)
 
     async def count_tasks(self, status: str | None = None) -> int:
         if status is not None:
             self._validate_status(status)
         return await self._repo.count(status)
 
-    async def get_task(self, task_id: int) -> Task:
-        task = await self._repo.get(task_id)
+    async def get_task(self, task_id: int, include_deleted: bool = False) -> Task:
+        task = await self._repo.get(task_id, include_deleted=include_deleted)
         if task is None:
             raise TaskNotFound(task_id)
         return task
@@ -61,6 +64,12 @@ class TaskService:
         task.assignee = data.assignee
         return await self._repo.update(task)
 
-    async def delete_task(self, task_id: int) -> None:
-        task = await self.get_task(task_id)
-        await self._repo.delete(task)
+    async def delete_task(self, task_id: int, permanent: bool = False) -> None:
+        task = await self.get_task(task_id, include_deleted=True)
+        await self._repo.delete(task, permanent=permanent)
+
+    async def restore_task(self, task_id: int) -> None:
+        task = await self.get_task(task_id, include_deleted=True)
+        if task.deleted_at is None:
+            raise TaskNotFound(task_id)
+        await self._repo.restore(task)

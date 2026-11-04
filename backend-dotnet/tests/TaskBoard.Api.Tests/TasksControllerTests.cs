@@ -86,4 +86,15 @@ public class TasksControllerTests
 
         Assert.IsType<NoContentResult>(result);
     }
+
+    [Fact]
+    public async Task Delete_ReturnsNotFoundWhenMissing()
+    {
+        _service.Setup(s => s.DeleteAsync(9, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new TaskNotFoundException(9));
+
+        var result = await _sut.Delete(9, CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
 }

@@ -16,8 +16,11 @@ CREATE TABLE IF NOT EXISTS tasks (
                 CHECK (status IN ('todo', 'in-progress', 'done')),
     assignee    VARCHAR(100),
     created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMP
 );
+
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks (status);
 

@@ -109,4 +109,11 @@ class TaskControllerTest {
         mvc.perform(delete("/api/tasks/1")).andExpect(status().isNoContent());
         verify(service).delete(1);
     }
+
+    @Test
+    void deleteReturns404WhenMissing() throws Exception {
+        doThrow(new TaskNotFoundException(9)).when(service).delete(9);
+
+        mvc.perform(delete("/api/tasks/9")).andExpect(status().isNotFound());
+    }
 }

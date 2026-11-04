@@ -8,6 +8,7 @@ import * as taskService from '../services/taskService'
 export default function BoardPage() {
   const [tasks, setTasks] = useState([])
   const [filter, setFilter] = useState('all')
+  const [showDeleted, setShowDeleted] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -16,13 +17,13 @@ export default function BoardPage() {
     setError(null)
     try {
       // Filtering is done server-side; we pass the current filter through.
-      setTasks(await taskService.listTasks(filter))
+      setTasks(await taskService.listTasks(filter, showDeleted))
     } catch {
       setError('Could not load tasks. Is the backend running?')
     } finally {
       setLoading(false)
     }
-  }, [filter])
+  }, [filter, showDeleted])
 
   useEffect(() => {
     refresh()
@@ -43,6 +44,21 @@ export default function BoardPage() {
     await refresh()
   }
 
+  async function handleRestore(task) {
+    await taskService.restoreTask(task.id)
+    await refresh()
+  }
+
+  async function handlePermanentDelete(task) {
+    const confirmed = window.confirm(
+      `Permanently delete "${task.title}"? This cannot be undone.`,
+    )
+    if (!confirmed) return
+
+    await taskService.permanentlyDeleteTask(task.id)
+    await refresh()
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -50,11 +66,14 @@ export default function BoardPage() {
         <span className="assignee">Module 01 — AI Champions Programme</span>
       </header>
 
-      <TaskForm onCreate={handleCreate} />
+      {!showDeleted && <TaskForm onCreate={handleCreate} />}
 
       <div className="toolbar">
         <StatusFilter value={filter} onChange={setFilter} />
         <button onClick={refresh}>Refresh</button>
+        <button onClick={() => setShowDeleted((value) => !value)}>
+          {showDeleted ? 'Back to active tasks' : 'View deleted tasks'}
+        </button>
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -64,6 +83,9 @@ export default function BoardPage() {
           filter={filter}
           onAdvance={handleAdvance}
           onDelete={handleDelete}
+          deleted={showDeleted}
+          onRestore={handleRestore}
+          onPermanentlyDelete={handlePermanentDelete}
         />
       )}
     </div>

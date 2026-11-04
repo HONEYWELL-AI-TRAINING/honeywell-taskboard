@@ -33,20 +33,29 @@ class FakeTaskRepository:
             assignee=kwargs.get("assignee"),
             created_at=now,
             updated_at=now,
+            deleted_at=kwargs.get("deleted_at"),
         )
         self._tasks[task.id] = task
         self._next_id += 1
         return task
 
-    async def list(self, status: str | None = None) -> Sequence[Task]:
+    async def list(self, status: str | None = None, deleted: bool = False) -> Sequence[Task]:
         rows = sorted(self._tasks.values(), key=lambda t: t.id)
-        return [t for t in rows if status is None or t.status == status]
+        return [
+            task
+            for task in rows
+            if (task.deleted_at is not None) == deleted
+            and (status is None or task.status == status)
+        ]
 
     async def count(self, status: str | None = None) -> int:
         return len(await self.list(status))
 
-    async def get(self, task_id: int) -> Task | None:
-        return self._tasks.get(task_id)
+    async def get(self, task_id: int, include_deleted: bool = False) -> Task | None:
+        task = self._tasks.get(task_id)
+        if task is not None and task.deleted_at is not None and not include_deleted:
+            return None
+        return task
 
     async def add(self, task: Task) -> Task:
         task.id = self._next_id
@@ -62,8 +71,15 @@ class FakeTaskRepository:
         self._tasks[task.id] = task
         return task
 
-    async def delete(self, task: Task) -> None:
-        self._tasks.pop(task.id, None)
+    async def delete(self, task: Task, permanent: bool = False) -> None:
+        if permanent:
+            self._tasks.pop(task.id, None)
+        elif task.deleted_at is None:
+            task.deleted_at = datetime(2026, 1, 2, 12, 0, 0)
+
+    async def restore(self, task: Task) -> None:
+        task.deleted_at = None
+        task.updated_at = datetime(2026, 1, 3, 12, 0, 0)
 
 
 @pytest.fixture

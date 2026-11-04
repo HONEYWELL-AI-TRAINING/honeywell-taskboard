@@ -9,6 +9,14 @@ schema: spec-driven
 #     Designs and tasks must cover Windows, macOS, and Linux
 #     Write all artifacts in Spanish
 
+context: |
+  Task Board: React (Vite) frontend; .NET, Python (FastAPI) and Java backends over PostgreSQL.
+  Layering: Controller/Router -> Service -> Repository; all SQL in repositories.
+  React: components -> pages -> services; all HTTP in services/.
+  Error contract: 404 missing, 422 bad request. No other codes without a constitution-level decision.
+  Brownfield: minimal change; stay inside the blast radius; do not edit applied migrations.
+  All backends must be behaviour-identical (status codes, bodies, ordering).
+
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
 # Example:

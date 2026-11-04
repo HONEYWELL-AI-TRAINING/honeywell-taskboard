@@ -12,10 +12,11 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 @router.get("", response_model=list[TaskRead])
 async def list_tasks(
     status: str | None = Query(default=None, description="Filter by task status"),
+    deleted: bool = Query(default=False, description="List deleted tasks"),
     service: TaskService = Depends(get_task_service),
 ) -> list[TaskRead]:
     try:
-        tasks = await service.list_tasks(status)
+        tasks = await service.list_tasks(status, deleted=deleted)
     except InvalidStatus as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return [TaskRead.model_validate(t) for t in tasks]
@@ -37,10 +38,13 @@ async def count_tasks(
 @router.get("/{task_id}", response_model=TaskRead)
 async def get_task(
     task_id: int,
+    include_deleted: bool = Query(default=False, alias="includeDeleted"),
     service: TaskService = Depends(get_task_service),
 ) -> TaskRead:
     try:
-        return TaskRead.model_validate(await service.get_task(task_id))
+        return TaskRead.model_validate(
+            await service.get_task(task_id, include_deleted=include_deleted)
+        )
     except TaskNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -73,10 +77,23 @@ async def update_task(
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_task(
     task_id: int,
+    permanent: bool = Query(default=False),
     service: TaskService = Depends(get_task_service),
 ) -> Response:
     try:
-        await service.delete_task(task_id)
+        await service.delete_task(task_id, permanent=permanent)
+    except TaskNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{task_id}/restore", status_code=status.HTTP_204_NO_CONTENT)
+async def restore_task(
+    task_id: int,
+    service: TaskService = Depends(get_task_service),
+) -> Response:
+    try:
+        await service.restore_task(task_id)
     except TaskNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
